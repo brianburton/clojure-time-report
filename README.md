@@ -1,14 +1,15 @@
 # time-report
 
 KISS solution for time tracking.  Parses a text file containing a work time log
-that can be used for bill purposes.  I used this text file format to track my
+that can be used for billing purposes.  I used this text file format to track my
 billable hours for years when working as a consutant.  This clojure program was
 a learning exercise to replace a far more complex ruby script.  Obviously the
-original script had many features.
+original script had many features than this short program.
 
 The ruby script parsed the file to produce instances of various classes.
 Methods on those classes were used to process the data.  This clojure program
-instead parses the time log into a single map/vector structure.
+instead parses the time log into a single map/vector structure.  Processing
+the time as data turned out to be far easier to understand than the OO solution was.
 
 Each day is represented by a map like this:
 
