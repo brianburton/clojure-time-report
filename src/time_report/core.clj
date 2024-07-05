@@ -225,7 +225,12 @@
   "Partition a sequence of lines into a sequence of vectors of adjacent non-blank lines."
   [lines-seq]
   (filter (fn [v] (not-empty (first v)))
-          (map vec (partition-by empty? (bounded-line-seq (filter some? (map normalize-line lines-seq)))))))
+          (->> lines-seq
+               (map normalize-line)
+               (filter some?)
+               (bounded-line-seq)
+               (partition-by empty?)
+               (map vec))))
 
 (defn same-date?
   [a b]
@@ -265,7 +270,12 @@
 (defn parse-file
   [file-name today-date filter-fn]
   (process-file file-name
-                (fn [lines-seq] (filter filter-fn (assert-dates-sorted (map (partial parse-file-block today-date) (calc-file-blocks lines-seq)))))))
+                (fn [lines-seq]
+                  (->> lines-seq
+                       calc-file-blocks
+                       (map (partial parse-file-block today-date))
+                       assert-dates-sorted
+                       (filter filter-fn)))))
 
 (defn group-by-weeks
   [days]
@@ -382,7 +392,7 @@
     (println column-width)))
 
 (def cli-options
-  [["-d DATE" "--date DATE" "Set base date (defaults to today)."
+  [["-d" "--date DATE" "Set base date (defaults to today)."
     :parse-fn #(parse-date %)
     :default (current-date)
     :validate [#(>= (compare % (parse-date "01/01/2000")) 0) "Must be in this millenium"]]
