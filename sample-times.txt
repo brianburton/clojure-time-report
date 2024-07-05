@@ -1,0 +1,7 @@
+Date: Thursday 07/04/2024
+acme,cms: 0835-1155,1400-1500,1530-1810
+bozon,prototype: 1205-1400,1810-2000
+
+Date: Thursday 07/05/2024
+acme,cms: 0815-1415
+bozon,prototype: 1515-1820
