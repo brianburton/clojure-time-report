@@ -4,10 +4,10 @@
   (:require [java-time.api :as jt])
   (:require [clojure.string :as str])
   (:require [clojure.java.io :as io])
-  (:require [clojure.data.json :as json])
   (:require [clojure.tools.cli :refer [parse-opts]]))
 
 (defn my-flatten
+  "Just a fun little hack to see how flatten works.  Not part of the program..."
   ([s] (my-flatten s ()))
   ([ss more]
    (lazy-seq
@@ -33,16 +33,16 @@
   [v indexes]
   (reduce (fn [newv i] (conj newv (v i))) [] indexes))
 
-(defn last-2-seq
+(defn consecutive-items-seq
   "Creates a lazy seq that reads from the provided seq and returns
    pairs of previous value plus current value.  Initial value can be
    provided when calling (nil used if none provided)."
-  ([the-seq] (last-2-seq nil the-seq))
+  ([the-seq] (consecutive-items-seq nil the-seq))
   ([prev-value the-seq]
    (lazy-seq
     (when-not (empty? the-seq)
       (let [this-value (first the-seq)]
-        (cons [prev-value this-value] (last-2-seq this-value (rest the-seq))))))))
+        (cons [prev-value this-value] (consecutive-items-seq this-value (rest the-seq))))))))
 
 (defn parse-time [t]
   (try (jt/local-time "HHmm" t)
@@ -180,7 +180,7 @@
   [times-vec time-line]
   (let [sorted (sort-by :start times-vec)
         all-times (flatten (map #(select-values % [:start :stop]) sorted))]
-    (doseq [[prev curr] (last-2-seq "0000" all-times)]
+    (doseq [[prev curr] (consecutive-items-seq "0000" all-times)]
       (when (> (compare prev curr) 0)
         (throw (ex-info "invalid time sequence" {:type :time-sequence-overlap :text time-line :prev prev :current curr}))))))
 
@@ -265,7 +265,7 @@
            (if (< 0 (compare curr-date prev-date))
              curr-dm
              (throw (ex-info "Dates are not sorted." {:type :unsorted-dates :prev prev-date :current curr-date})))))
-       (last-2-seq {:year 0 :month 0 :day 0} dms)))
+       (consecutive-items-seq {:year 0 :month 0 :day 0} dms)))
 
 (defn parse-file
   [file-name today-date filter-fn]
