@@ -95,12 +95,14 @@
     :else 30))
 
 (defn cycle-days
+  "Return a set containing all of the day numbers (1-15 or 16-N) in the given cycle."
   [year month day]
   (if (< day 16)
     (set (range 1 16))
     (set (range 16 (+ 1 (days-in-month year month))))))
 
 (defn same-cycle?
+  "Return a function that takes a date-map and returns true if the date from the map is in the same cycle as the given date."
   [year month day]
   (let [good-days (cycle-days year month day)]
     (fn [{y :year m :month d :day}]
@@ -110,17 +112,15 @@
        (good-days d)))))
 
 (defn current-cycle?
-  [today]
-  (let [current-year (.getYear today)
-        current-month (.getMonthValue today)
-        current-day (.getDayOfMonth today)]
+  "Given a date-map to identify a cycle, return a function that takes another date-map and returns true if that date is in the target cycle."
+  [today-map]
+  (let [{current-year :year current-month :month current-day :day} today-map]
     (same-cycle? current-year current-month current-day)))
 
 (defn prev-cycle?
-  [today]
-  (let [current-year (.getYear today)
-        current-month (.getMonthValue today)
-        current-day (.getDayOfMonth today)
+  "Given a date-map to identify a cycle, return a function that takes another date-map and returns true if that date is in the cycle previous to the target cycle."
+  [today-map]
+  (let [{current-year :year current-month :month current-day :day} today-map
         prev-day (if (< current-day 16) 16 1)
         prev-month (if (< current-day 16)
                      (if (= current-month 1) 12 (dec current-month))
@@ -130,12 +130,12 @@
                     current-year)]
     (same-cycle? prev-year prev-month prev-day)))
 
-(defn fill-missing-days [dms]
+(defn fill-missing-days
+  "Given a sequence of date maps from a single cycle return a sorted vector of date maps including zero-elapsed date-maps for any days missing from the input sequence."
+  [dms]
   (let [present-days (set (map :day dms))
         first-dm (first dms)
-        year (:year first-dm)
-        month (:month first-dm)
-        day (:day first-dm)
+        {year :year month :month day :day} first-dm
         all-days (cycle-days year month day)
         missing-days (set/difference all-days present-days)
         missing-dms (map (fn [d]
@@ -420,8 +420,9 @@
         (println (:summary parsed-opts)))
       (System/exit 1))
     (try
-      (let [today-date-map (date-to-map (current-date))
-            raw-data (parse-file file-name today-date-map (current-cycle? base-date))
+      (let [base-date-map (date-to-map base-date)
+            today-date-map (date-to-map (current-date))
+            raw-data (parse-file file-name today-date-map (current-cycle? base-date-map))
             filled-data (fill-missing-days raw-data)
             weeks-data (group-by-weeks filled-data)]
         (doseq [week-data weeks-data]
