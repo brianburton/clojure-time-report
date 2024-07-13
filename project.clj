@@ -9,7 +9,7 @@
                  ;; https://mvnrepository.com/artifact/org.clojure/data.json
                  [org.clojure/data.json "2.5.0"]
                  [org.clojure/tools.cli "1.1.230"]]
-  :main ^:skip-aot time-report.core
+  :main ^:skip-aot time-report.main
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})

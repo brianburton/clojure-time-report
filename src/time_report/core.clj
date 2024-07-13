@@ -1,28 +1,9 @@
 (ns time-report.core
-  (:gen-class)
+  (:require [time-report.print :as pr])
   (:require [clojure.set :as set])
   (:require [java-time.api :as jt])
   (:require [clojure.string :as str])
-  (:require [clojure.java.io :as io])
-  (:require [clojure.tools.cli :refer [parse-opts]]))
-
-(defn my-flatten
-  "Just a fun little hack to see how flatten works.  Not part of the program..."
-  ([s] (my-flatten s ()))
-  ([ss more]
-   (lazy-seq
-    (loop [s ss k more]
-      (println s)
-      (println k)
-      (if (seqable? s)
-        (if (empty? s)
-          (if (empty? k) nil (recur (first k) (rest k)))
-          (let [head (first s)
-                tail (rest s)]
-            (if (seqable? head)
-              (recur head (cons tail k))
-              (cons head (my-flatten tail k)))))
-        (println (list? s) (empty? s) (seq? s) s))))))
+  (:require [clojure.java.io :as io]))
 
 (defn select-values
   "Create a vector containing value for each key (or nil if not in map)."
@@ -60,16 +41,21 @@
 
 ; saturday first order:
 ; (def ^:const day-names ["SAT" "SUN" "MON" "TUE" "WED" "THU" "FRI"])
-; (defn day-number [day] (let [d (.. day getDayOfWeek getValue)] (if (>= d 6) (- d 6) (+ d 1))))
+; (defn day-of-week [day] (let [d (.. day getDayOfWeek getValue)] (if (>= d 6) (- d 6) (+ d 1))))
 
 ; monday first order:
-(def ^:const day-names ["MON" "TUE" "WED" "THU" "FRI" "SAT" "SUN"])
-(defn day-number [day] (let [d (.. day getDayOfWeek getValue)] (dec d)))
+(def ^:const day-names ["Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"])
+(def ^:const day-abbrevs ["MON" "TUE" "WED" "THU" "FRI" "SAT" "SUN"])
+(defn day-of-week [day] (let [d (.. day getDayOfWeek getValue)] (dec d)))
+
+(defn day-name [d] (day-names (day-of-week d)))
+(defn day-abbrev [d] (day-abbrevs (day-of-week d)))
 
 (defn day-index
+  "Computes an index that uniquely identifies the given date."
   [day]
   (let [raw-base (jt/local-date 1996 1 1)
-        real-base (jt/minus raw-base (jt/days (day-number raw-base)))]
+        real-base (jt/minus raw-base (jt/days (day-of-week raw-base)))]
     (jt/time-between :days real-base day)))
 
 (defn week-number [day] (quot (day-index day) 7))
@@ -140,7 +126,7 @@
         missing-days (set/difference all-days present-days)
         missing-dms (map (fn [d]
                            (let [ld (jt/local-date year month d)
-                                 dn (day-number ld)
+                                 dn (day-of-week ld)
                                  wn (week-number ld)]
                              {:year year :month month :day d :day-number dn :week-number wn :times []}))
                          missing-days)]
@@ -154,7 +140,7 @@
       {:month (.getMonthValue d)
        :day (.getDayOfMonth d)
        :year (.getYear d)
-       :day-number (day-number d)
+       :day-number (day-of-week d)
        :week-number (week-number d)})
     (throw (ex-info "invalid date line" {:type :invalid-date-line :text line}))))
 
@@ -243,8 +229,8 @@
    Produces a seq of maps containing one one day of data per map."
   [today-date-map [date-line & time-lines]]
   (let [date-line-map (parse-date-line date-line)
-        incomplete-date-ok (same-date? today-date-map date-line-map)
-        time-lines-vec (filter some? (map (partial parse-time-line incomplete-date-ok) time-lines))
+        incomplete-time-span-ok (same-date? today-date-map date-line-map)
+        time-lines-vec (filter some? (map (partial parse-time-line incomplete-time-span-ok) time-lines))
         all-times (flatten (map :times time-lines-vec))]
     (when-not (nil? date-line-map)
       (assert-times-distinct all-times date-line)
@@ -291,10 +277,12 @@
   (format "%02d/%02d" m d))
 
 (defn normalize-minutes
+  "Truncats an elapsed time to an even multiple of 15 minutes."
   [minutes]
   (- minutes (mod minutes 15)))
 
 (defn normalize-minutes-vec
+  "Normalizes all elapsed times in a vector."
   [minutes-vec]
   (vec (map normalize-minutes minutes-vec)))
 
@@ -303,6 +291,7 @@
   (vec (map + a b)))
 
 (defn calc-total
+  "Compute simple total of numbers in a vector."
   [vec]
   (reduce + 0 vec))
 
@@ -319,8 +308,7 @@
 
 (defn calc-elapsed-for-week
   "Add up the elapsed time for all days in the flattened times into a vec.
-   Returns a vector of 7 integers indexed by day-number.
-   All :keys SHOULD be identical in the passed in vec but no check is made for this."
+   Returns a vector of 7 totals indexed by day-number."
   [dv]
   (reduce (fn [totals row]
             (let [day-number (:day-number row)
@@ -330,36 +318,6 @@
           empty-elapsed-vec
           dv))
 
-(defn days-str
-  [dms]
-  (let [sorted-day-nums (sort (map :day-number dms))
-        sorted-day-names (map day-names sorted-day-nums)
-        base-str (reduce (fn [s d] (format "%s  %6s" s d)) "" sorted-day-names)]
-    (format "%32s %s" "" base-str)))
-
-(defn dates-str
-  [dms]
-  (let [sorted-dates (sort-by (fn [dm] (select-values dm [:year :month :day])) dms)
-        base-str (reduce (fn [s d] (format "%s  %6s" s (date-str d))) "" sorted-dates)]
-    (format "%32s  %s  TOTALS  REPORT" "" base-str)))
-
-(defn project-str
-  "Produce a string containing the weekly totals for a single project."
-  [project-key elapsed-vec day-numbers]
-  (let [elapsed-sub-vec (sub-vec elapsed-vec day-numbers)
-        elapsed-total (reduce + 0 elapsed-sub-vec)
-        elapsed-line (reduce (fn [s e] (str s "  " (elapsed-str e))) "" elapsed-sub-vec)
-        project-str (str (get project-key 0) "," (get project-key 1))
-        report-total (calc-total (normalize-minutes-vec elapsed-sub-vec))]
-    (format "%-32s  %s  %6s  %6s" project-str elapsed-line (elapsed-str elapsed-total) (elapsed-str report-total))))
-
-(defn totals-str
-  [label totals-vec day-numbers]
-  (let [totals-sub-vec (sub-vec totals-vec day-numbers)
-        grand-total (calc-total totals-sub-vec)
-        totals-line (reduce (fn [s e] (str s "  " (elapsed-str e))) "" totals-sub-vec)]
-    (format "%-32s  %s  %6s" label totals-line (elapsed-str grand-total))))
-
 (defn compute-report-totals
   [times]
   (let [project-totals (map (fn [week-times] (calc-elapsed-for-week week-times)) (vals times))
@@ -367,66 +325,68 @@
         grand-totals (reduce add-vecs empty-elapsed-vec normalized-totals)]
     grand-totals))
 
-(defn print-week
+(defn days-row
   [dms]
+  (let [sorted-day-nums (sort (map :day-number dms))
+        sorted-day-names (map day-abbrevs sorted-day-nums)]
+    {:label ""
+     :data sorted-day-names
+     :totals ["" ""]}))
+
+(defn dates-row
+  [dms]
+  (let [sorted-dms (sort-by (fn [dm] (select-values dm [:year :month :day])) dms)
+        sorted-dates (map date-str sorted-dms)]
+    {:label "PROJECT"
+     :data sorted-dates
+     :totals ["TOTALS" "REPORT"]}))
+
+(defn project-str
+  [[client project]]
+  (str client "," project))
+
+(defn project-row
+  [project-times-by-key day-numbers project-key]
+  (let [project-times (project-times-by-key project-key)
+        elapsed-vec (calc-elapsed-for-week project-times)
+        elapsed-sub-vec (sub-vec elapsed-vec day-numbers)
+        elapsed-total (calc-total elapsed-sub-vec)
+        report-total (calc-total (normalize-minutes-vec elapsed-sub-vec))]
+    {:label (project-str project-key)
+     :data (map elapsed-str elapsed-sub-vec)
+     :totals (map elapsed-str [elapsed-total report-total])}))
+
+(defn totals-row
+  [label totals-vec day-numbers]
+  (let [totals-sub-vec (sub-vec totals-vec day-numbers)
+        grand-total (calc-total totals-sub-vec)]
+    {:label label
+     :data (map elapsed-str totals-sub-vec)
+     :totals [(elapsed-str grand-total)]}))
+
+(defn calc-max-label-length
+  [project-keys]
+  (apply max 0 (map #(count (project-str %)) project-keys)))
+
+(defn unique-project-keys
+  [dms]
+  (->> dms
+       (map :times)
+       (flatten)
+       (map #(select-values % [:client :project]))
+       (distinct)))
+
+(defn create-report-for-week
+  [dms formatter-options]
   (let [all-times (flatten-times dms)
-        times (group-by :key all-times)
-        totals-vec (calc-elapsed-for-week all-times)
-        report-totals-vec (compute-report-totals times)
-        sorted-keys (sort (keys times))
-        sorted-day-nums (sort (map :day-number dms))]
-    (println (days-str dms))
-    (println (dates-str dms))
-    (doseq [project-key sorted-keys]
-      (let [project-times (times project-key)
-            elapsed-vec (calc-elapsed-for-week project-times)]
-        (println (project-str project-key elapsed-vec sorted-day-nums))))
-    (println (totals-str "TOTALS" totals-vec sorted-day-nums))
-    (println (totals-str "REPORT" report-totals-vec sorted-day-nums))))
-
-(defn print-report
-  [lines]
-  (let [label-width (apply max (map (comp  count :label) lines))
-        column-width (apply max (flatten (map (comp  count :values) lines)))]
-    (println label-width)
-    (println column-width)))
-
-(def cli-options
-  [["-d" "--date DATE" "Set base date (defaults to today)."
-    :parse-fn #(parse-date %)
-    :default (current-date)
-    :validate [#(>= (compare % (parse-date "01/01/2000")) 0) "Must be in this millenium"]]
-   ["-h" "--help" "Print help message and exit."]])
-
-(defn -main
-  [& args]
-  (let [parsed-opts (parse-opts args cli-options)
-        {options :options errors :errors pos-args :arguments} parsed-opts
-        base-date (:date options)
-        file-name (first pos-args)
-        help? (some? (:help options))
-        arg-count (count pos-args)]
-    (when help?
-      (println "usage: time-tracker OPTIONS file-name")
-      (println (:summary parsed-opts))
-      (System/exit 0))
-    (when (or (some? errors)
-              (not= 1 arg-count))
-      (doseq [msg errors]
-        (println msg))
-      (when (not= 1 arg-count)
-        (println "error: file-name required")
-        (println "usage: time-tracker OPTIONS file-name")
-        (println (:summary parsed-opts)))
-      (System/exit 1))
-    (try
-      (let [base-date-map (date-to-map base-date)
-            today-date-map (date-to-map (current-date))
-            raw-data (parse-file file-name today-date-map (current-cycle? base-date-map))
-            filled-data (fill-missing-days raw-data)
-            weeks-data (group-by-weeks filled-data)]
-        (doseq [week-data weeks-data]
-          (println "")
-          (print-week week-data)))
-      (catch clojure.lang.ExceptionInfo ex
-        (println (str "error: " (ex-data ex)))))))
+        project-times-by-key (group-by :key all-times)
+        simple-totals-vec (calc-elapsed-for-week all-times)
+        report-totals-vec (compute-report-totals project-times-by-key)
+        sorted-project-keys (sort (keys project-times-by-key))
+        sorted-day-nums (sort (map :day-number dms))
+        project-rows (map (partial project-row project-times-by-key sorted-day-nums) sorted-project-keys)
+        simple-totals (totals-row "TOTALS" simple-totals-vec sorted-day-nums)
+        report-totals (totals-row "REPORT" report-totals-vec sorted-day-nums)]
+    (pr/format-report
+     (flatten [(days-row dms) (dates-row dms) project-rows simple-totals report-totals])
+     formatter-options)))
