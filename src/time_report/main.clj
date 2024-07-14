@@ -1,15 +1,15 @@
 (ns time-report.main
   (:gen-class)
-  (:require [time-report.core :as core])
-  (:require [time-report.print :as pr])
-  (:require [time-report.random :as rnd])
-  (:require [clojure.tools.cli :refer [parse-opts]]))
+  (:require [time-report.core :refer [parse-date current-date]]
+            [time-report.mode.random :as random]
+            [time-report.mode.weekly :as weekly]
+            [clojure.tools.cli :refer [parse-opts]]))
 
 (def cli-options
   [["-d" "--date DATE" "Set base date (defaults to today)."
-    :parse-fn #(core/parse-date %)
-    :default (core/current-date)
-    :validate [#(>= (compare % (core/parse-date "01/01/2000")) 0) "Must be in this millenium"]]
+    :parse-fn #(parse-date %)
+    :default (current-date)
+    :validate [#(>= (compare % (parse-date "01/01/2000")) 0) "Must be in this millenium"]]
    ["-m" "--mode MODE" "Select the execution mode."
     :default "weekly"
     :validate [#(contains? #{"weekly" "random"} %) "unknown mode"]]
@@ -40,18 +40,7 @@
       (System/exit 1))
     (try
       (case mode
-        "random" (pr/print-lines (rnd/random-data-file))
-        "weekly" (let [base-date-map (core/date-to-map base-date)
-                       today-date-map (core/date-to-map (core/current-date))
-                       raw-data (core/parse-file file-name today-date-map (core/current-cycle? base-date-map))
-                       filled-data (core/fill-missing-days raw-data)
-                       weeks-data (core/group-by-weeks filled-data)
-                       labels-width (core/calc-max-label-length (core/unique-project-keys filled-data))
-                       printer-options {:label-width labels-width}]
-                   (println printer-options)
-                   (println (core/unique-project-keys filled-data))
-                   (doseq [week-data weeks-data]
-                     (println "")
-                     (pr/print-lines (core/create-report-for-week week-data printer-options)))))
+        "random" (random/execute)
+        "weekly" (weekly/execute base-date file-name))
       (catch clojure.lang.ExceptionInfo ex
         (println (str "error: " (ex-data ex)))))))

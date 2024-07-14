@@ -1,6 +1,6 @@
-(ns time-report.random
-  (:require [time-report.core :as core])
-  (:require [java-time.api :as jt])
+(ns time-report.mode.random
+  (:require [time-report.core :as core]
+            [time-report.print :as pr])
   (:require [clojure.string :as str]))
 
 (def projects ["nasa,navigation system"
@@ -61,9 +61,7 @@
 
 (defn- dates []
   (let [today (core/current-date)]
-    (map (fn [offset]
-           (jt/minus today (jt/days (abs offset))))
-         (range -45 1))))
+    (map #(core/prior-date today (abs %)) (range -45 1))))
 
 (defn- date-line [d]
   (let [{year :year month :month day :day} (core/date-to-map d)]
@@ -77,7 +75,6 @@
 (defn random-data-file []
   (flatten (map date-and-time-lines (dates))))
 
-;(random-spans)
-;(random-time-lines)
-;(map date-line (dates))
-;(random-data-file)
+(defn execute
+  []
+  (pr/print-lines (random-data-file)))
