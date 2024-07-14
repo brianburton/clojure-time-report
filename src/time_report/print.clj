@@ -54,10 +54,3 @@
   ([row-defs] (print-report row-defs {}))
   ([row-defs options]
    (print-lines (format-report row-defs options))))
-
-(def test-report
-  [{:label "abc" :data [100 4 28] :totals [132 2]}
-   {:label "xy" :data [00 4093 28] :totals [12 20]}])
-
-;(str "|" (left-pad 5 "zoo") "|")
-;(str "|" (right-pad 5 "zoo") "|")
