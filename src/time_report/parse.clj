@@ -1,7 +1,46 @@
 (ns time-report.parse
   (:require [time-report.core :as core]
             [clojure.string :as str]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [malli.core :as m]
+            [malli.generator :as mg]))
+
+; 0000-2359
+(def hhmm-regex #"(([01][0-9])|(2[0-3]))[0-5][0-9]")
+
+; A single time span in the source file.
+; :start and :stop are strings of hhmm
+; :elapsed is in minutes
+(def time-span-schema
+  [:map
+   [:start hhmm-regex]
+   [:stop hhmm-regex]
+   [:elapsed [:int {:min 1 :max 900}]]])
+
+; Group of time spans associated with a client/project.
+; :elapsed is sum of :elapsed from the time spans.
+(def time-map-schema
+  [:map
+   [:client #"[-a-z]+"]
+   [:project #"[- a-zA-Z]+"]
+   [:elapsed [:int {:min 1 :max 1440}]]
+   [:times [:vector time-span-schema]]])
+
+; A single date and all of its associated time-maps.
+; process-file passes a sequence of these to its processor-fn argument.
+(def date-map-schema
+  [:map
+   [:year [:int {:min 2000 :max 2200}]]
+   [:month [:int {:min 1 :max 12}]]
+   [:day [:int {:min 1 :max 31}]]
+   [:day-number [:int {:min 0 :max 6}]]
+   [:week-number [:int {:min 0 :max 10000}]]
+   [:times [:vector time-map-schema]]])
+
+(comment
+  (mg/generate time-span-schema)
+  (mg/generate time-map-schema)
+  (mg/generate date-map-schema))
 
 (defn parse-date-line
   "Parse a line like 'Date: Tuesday 01/02/2024' into a map with broken out date components."

@@ -116,13 +116,13 @@
   [base-date file-name]
   (let [base-date-map (date-to-map base-date)
         today-date-map (date-to-map (current-date))
-        raw-data (parse/parse-file file-name today-date-map (current-cycle? base-date-map))
-        filled-data (fill-missing-days raw-data)
-        weeks-data (group-by-weeks filled-data)
-        labels-width (calc-max-label-length (unique-project-keys filled-data))
-        printer-options {:label-width labels-width}]
-    (println printer-options)
-    (println (unique-project-keys filled-data))
-    (doseq [week-data weeks-data]
-      (println "")
-      (pr/print-lines (create-report-for-week week-data printer-options)))))
+        raw-data (parse/parse-file file-name today-date-map (current-cycle? base-date-map))]
+    (if (empty? raw-data)
+      (println "no data for time period")
+      (let [filled-data (fill-missing-days raw-data)
+            weeks-data (group-by-weeks filled-data)
+            labels-width (calc-max-label-length (unique-project-keys filled-data))
+            printer-options {:label-width labels-width}]
+        (doseq [week-data weeks-data]
+          (println "")
+          (pr/print-lines (create-report-for-week week-data printer-options)))))))
