@@ -1,9 +1,9 @@
 (ns time-report.parse
-  (:require [time-report.core :as core]
+  (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.java.io :as io]
             [malli.core :as m]
-            [malli.generator :as mg]))
+            [malli.generator :as mg]
+            [time-report.core :as core]))
 
 ; 0000-2359
 (def hhmm-regex #"(([01][0-9])|(2[0-3]))[0-5][0-9]")

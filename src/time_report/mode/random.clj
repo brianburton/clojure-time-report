@@ -1,7 +1,7 @@
 (ns time-report.mode.random
-  (:require [time-report.core :as core]
-            [time-report.print :as pr])
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [time-report.core :as core]
+            [time-report.print :as pr]))
 
 (def projects ["nasa,navigation system"
                "nasa,saturn v launch"
@@ -38,7 +38,7 @@
   (reduce
    (fn [spans _] (conj spans (random-time)))
    ["0800" "1200" "1300" "1700"]
-   (range 0  (inc (rand-int 6)))))
+   (range 0 (inc (rand-int 6)))))
 
 (defn- random-spans []
   (->> (random-times)

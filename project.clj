@@ -13,6 +13,9 @@
                  [metosin/malli "0.16.2"]
                  ; https://clojars.org/com.gfredericks/test.chuck
                  [com.gfredericks/test.chuck "0.2.14"]]
+  :plugins [[dev.weavejester/lein-cljfmt "0.12.0"]]
+  :cljfmt {:remove-multiple-non-indenting-spaces? true
+           :sort-ns-references? true}
   :main ^:skip-aot time-report.main
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all

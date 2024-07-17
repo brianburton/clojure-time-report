@@ -1,9 +1,9 @@
 (ns time-report.main
   (:gen-class)
-  (:require [time-report.core :refer [parse-date current-date]]
+  (:require [clojure.tools.cli :refer [parse-opts]]
+            [time-report.core :refer [parse-date current-date]]
             [time-report.mode.random :as random]
-            [time-report.mode.weekly :as weekly]
-            [clojure.tools.cli :refer [parse-opts]]))
+            [time-report.mode.weekly :as weekly]))
 
 (def cli-options
   [["-d" "--date DATE" "Set base date (defaults to today)."
