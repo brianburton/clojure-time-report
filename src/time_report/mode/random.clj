@@ -25,7 +25,7 @@
 (defn- random-projects [number]
   (reduce (fn [acc _] (conj acc (random-project)))
           #{}
-          (range 0 (inc (rand-int number)))))
+          (range 0 (+ 2 (rand-int number)))))
 
 (defn- random-time []
   (format "%02d%02d"
@@ -38,19 +38,50 @@
   (reduce
    (fn [spans _] (conj spans (random-time)))
    ["0800" "1200" "1300" "1700"]
-   (range 0 (inc (rand-int 6)))))
+   (range 0 (+ 2 (rand-int 5)))))
 
 (defn- random-spans []
   (->> (random-times)
+       (distinct)
        (sort)
        (partition 2 1)
-       (map (fn [[start end]] (format "%s-%s" start end)))
-       (filter #(not= "1200-1300" %))))
+       (filter #(not= ["1200" "1300"] %))))
+
+(comment (random-spans)
+         (->> (random-times)
+              (distinct)
+              (sort)
+              (filter #(not= ["1200" "1300"] %))))
+
+(defn- merge-adjoining-spans
+  "Merge spans together if the stop time of one is the same as the start time of the next."
+  [spans]
+  (reverse (reduce (fn [stack this-span]
+                     (if (empty? stack)
+                       (cons this-span stack)
+                       (let [[prev-start prev-stop] (first stack)
+                             [this-start this-stop] this-span]
+                         (if (= prev-stop this-start)
+                           (cons [prev-start this-stop] (rest stack))
+                           (cons this-span stack)))))
+                   ()
+                   spans)))
+
+(defn- span-str
+  [[start stop]] (str start "-" stop))
+
+(comment (->> [["0000" "0100"] ["0101" "0200"] ["0200" "0400"] ["0400" "0415"] ["0500" "0700"]]
+              merge-adjoining-spans
+              (map span-str)))
 
 (defn- time-line [spans]
   (str ((first spans) :project)
        ": "
-       (str/join "," (map :span spans))))
+       (->> spans
+            (map :span)
+            merge-adjoining-spans
+            (map span-str)
+            (str/join ","))))
 
 (defn- random-time-lines []
   (let [projects (vec (random-projects (inc (rand-int 4))))
@@ -59,9 +90,11 @@
         grouped (group-by :project assignments)]
     (map time-line (vals grouped))))
 
+(comment (random-time-lines))
+
 (defn- dates []
   (let [today (core/current-date)]
-    (map #(core/prior-date today (abs %)) (range -45 1))))
+    (map #(core/prior-date today (abs %)) (range -90 1))))
 
 (defn- date-line [d]
   (let [{year :year month :month day :day} (core/date-to-map d)]

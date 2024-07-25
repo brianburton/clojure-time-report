@@ -1,5 +1,6 @@
 (ns time-report.mode.weekly
   (:require [time-report.core :refer :all]
+            [time-report.mode.random :as rnd]
             [time-report.parse :as parse]
             [time-report.print :as pr]))
 
@@ -112,11 +113,17 @@
      (flatten [(days-row dms) (dates-row dms) project-rows simple-totals report-totals])
      formatter-options)))
 
+(defn parse-file-or-random
+  [file-name today-date-map filter-fn]
+  (if (= "random" file-name)
+    (parse/parse-lines (rnd/random-data-file) today-date-map filter-fn)
+    (parse/parse-file file-name today-date-map filter-fn)))
+
 (defn execute
   [base-date file-name]
   (let [base-date-map (date-to-map base-date)
         today-date-map (date-to-map (current-date))
-        raw-data (parse/parse-file file-name today-date-map (current-cycle? base-date-map))]
+        raw-data (parse-file-or-random file-name today-date-map (current-cycle? base-date-map))]
     (if (empty? raw-data)
       (println "no data for time period")
       (let [filled-data (fill-missing-days raw-data)

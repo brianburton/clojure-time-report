@@ -1,4 +1,6 @@
-(ns time-report.print)
+(ns time-report.print
+  (:require [malli.core :as m]
+            [malli.generator :as mg]))
 
 (defn- max-width
   "Find max width of a seq of strings."
@@ -26,6 +28,21 @@
   (if (contains? options width-keyword)
     (options width-keyword)
     (width-fn)))
+
+(def format-report-row-def-schema
+  [:map
+   [:label :string]
+   [:data [:vector :string]]
+   [:totals [:vector :string]]])
+
+(def format-report-options-schema
+  [:map
+   [:label-width [:maybe [:int {:min 1 :max 100}]]]
+   [:data-width [:maybe [:int {:min 1 :max 12}]]]
+   [:totals-width [:maybe [:int {:min 1 :max 12}]]]])
+
+(comment (mg/generate format-report-row-def-schema)
+         (mg/generate format-report-options-schema))
 
 (defn format-report
   "Take map {:label \"\" :data [x y] :totals [3 7]} and produce [lines].

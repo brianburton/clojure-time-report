@@ -159,12 +159,14 @@
              (throw (ex-info "Dates are not sorted." {:type :unsorted-dates :prev prev-date :current curr-date})))))
        (core/consecutive-items-seq {:year 0 :month 0 :day 0} dms)))
 
+(defn parse-lines
+  [lines-seq today-date filter-fn]
+  (->> lines-seq
+       calc-file-blocks
+       (map (partial parse-file-block today-date))
+       assert-dates-sorted
+       (filter filter-fn)))
+
 (defn parse-file
   [file-name today-date filter-fn]
-  (process-file file-name
-                (fn [lines-seq]
-                  (->> lines-seq
-                       calc-file-blocks
-                       (map (partial parse-file-block today-date))
-                       assert-dates-sorted
-                       (filter filter-fn)))))
+  (process-file file-name #(parse-lines % today-date filter-fn)))
