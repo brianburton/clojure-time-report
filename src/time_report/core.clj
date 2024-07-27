@@ -8,6 +8,7 @@
   (vec (map #(get source-map %) keys)))
 
 (defn sub-vec
+  "Create a vector containing only the values with the given indexes from the source vector."
   [v indexes]
   (reduce (fn [newv i] (conj newv (v i))) [] indexes))
 
@@ -21,6 +22,13 @@
     (when-not (empty? the-seq)
       (let [this-value (first the-seq)]
         (cons [prev-value this-value] (consecutive-items-seq this-value (rest the-seq))))))))
+
+(defmacro catch-and-return [f]
+  `(try
+     ~f
+     (catch clojure.lang.ExceptionInfo e1#
+       (assoc (ex-data e1#) :message (ex-message e1#)))
+     (catch Exception e2# (hash-map :type :unknown :class (class e2#) :message (.getMessage e2#)))))
 
 (defn parse-time [t]
   (try (jt/local-time "HHmm" t)
