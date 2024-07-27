@@ -77,3 +77,6 @@ time-tracker OPTIONS file-name
   -m, --mode MODE  weekly      Select the execution mode.
   -h, --help                   Print help message and exit.
 ```
+
+In `weekly` mode you can use `random` as a file name to have the program 
+generate the report with random data.
