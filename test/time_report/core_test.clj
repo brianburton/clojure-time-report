@@ -143,15 +143,6 @@
       12 31))
   (testing "lear year" (is (= 29 (days-in-month 2024 2)))))
 
-(deftest in-range-test
-  (are [expected number] (in-range? 1 4)
-    false 0
-    true 1
-    true 2
-    true 3
-    true 4
-    false 5))
-
 (deftest cycle-days-range-test
   (let [start [1 15]
         end-28 [16 28]
@@ -189,3 +180,15 @@
       3 16 end-31
       4 15 start
       4 16 end-30)))
+
+(deftest current-cylce?-test
+  (let [y 2024
+        m 3
+        d 14
+        in-cycle? (current-cycle? {:year y :month m :day d})]
+    (testing "true for days in cycle"
+      (doseq [d1 (range 1 16)] (is (in-cycle? {:year y :month m :day d1}))))
+    (testing "false for days before cycle"
+      (doseq [d1 (range 1 16)] (is (not (in-cycle? {:year y :month (- m 1) :day d1})))))
+    (testing "false for days after cycle"
+      (doseq [d1 (range 17 32)] (is (not (in-cycle? {:year y :month m :day d1})))))))

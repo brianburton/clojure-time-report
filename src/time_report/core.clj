@@ -87,10 +87,6 @@
     (= 2 month) (if (leap-year? year) 29 28)
     :else 30))
 
-(defn in-range?
-  "Return a function that accepts a single number and returns true if that number is in a given range"
-  [first last] #(<= first % last))
-
 (defn cycle-days-range
   "Return a tuple containing first and last day numbers (1-15 or 16-N) in the given cycle."
   [year month day]
@@ -107,32 +103,18 @@
 (defn same-cycle?
   "Return a function that takes a date-map and returns true if the date from the map is in the same cycle as the given date."
   [year month day]
-  (let [[first last] (cycle-days-range year month day)
-        good-day? (in-range? first last)]
+  (let [[first-day last-day] (cycle-days-range year month day)]
     (fn [{y :year m :month d :day}]
       (and
        (= year y)
        (= month m)
-       (good-day? d)))))
+       (<= first-day d last-day)))))
 
 (defn current-cycle?
   "Given a date-map to identify a cycle, return a function that takes another date-map and returns true if that date is in the target cycle."
   [today-map]
   (let [{current-year :year current-month :month current-day :day} today-map]
     (same-cycle? current-year current-month current-day)))
-
-(defn prev-cycle?
-  "Given a date-map to identify a cycle, return a function that takes another date-map and returns true if that date is in the cycle previous to the target cycle."
-  [today-map]
-  (let [{current-year :year current-month :month current-day :day} today-map
-        prev-day (if (< current-day 16) 16 1)
-        prev-month (if (< current-day 16)
-                     (if (= current-month 1) 12 (dec current-month))
-                     current-month)
-        prev-year (if (< current-day 16)
-                    (if (= current-month 1) (dec current-year) current-year)
-                    current-year)]
-    (same-cycle? prev-year prev-month prev-day)))
 
 (defn fill-missing-days
   "Given a sequence of date maps from a single cycle return a sorted vector of date maps including zero-elapsed date-maps for any days missing from the input sequence."
@@ -151,11 +133,12 @@
     (vec (sort-by :day (concat dms missing-dms)))))
 
 (defn same-date?
+  "Given two date maps return true if they represent the same date."
   [a b]
   (apply = (map #(select-values % [:year :month :day]) [a b])))
 
 (defn normalize-minutes
-  "Truncats an elapsed time to an even multiple of 15 minutes."
+  "Truncatse an elapsed time to an even multiple of 15 minutes."
   [minutes]
   (- minutes (mod minutes 15)))
 
