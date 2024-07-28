@@ -87,22 +87,33 @@
     (= 2 month) (if (leap-year? year) 29 28)
     :else 30))
 
+(defn in-range?
+  "Return a function that accepts a single number and returns true if that number is in a given range"
+  [first last] #(<= first % last))
+
+(defn cycle-days-range
+  "Return a tuple containing first and last day numbers (1-15 or 16-N) in the given cycle."
+  [year month day]
+  (if (< day 16)
+    [1 15]
+    [16 (days-in-month year month)]))
+
 (defn cycle-days
   "Return a set containing all of the day numbers (1-15 or 16-N) in the given cycle."
   [year month day]
-  (if (< day 16)
-    (set (range 1 16))
-    (set (range 16 (+ 1 (days-in-month year month))))))
+  (let [[first last] (cycle-days-range year month day)]
+    (set (range first (inc last)))))
 
 (defn same-cycle?
   "Return a function that takes a date-map and returns true if the date from the map is in the same cycle as the given date."
   [year month day]
-  (let [good-days (cycle-days year month day)]
+  (let [[first last] (cycle-days-range year month day)
+        good-day? (in-range? first last)]
     (fn [{y :year m :month d :day}]
       (and
        (= year y)
        (= month m)
-       (good-days d)))))
+       (good-day? d)))))
 
 (defn current-cycle?
   "Given a date-map to identify a cycle, return a function that takes another date-map and returns true if that date is in the target cycle."
