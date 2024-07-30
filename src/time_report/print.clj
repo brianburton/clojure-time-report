@@ -1,6 +1,5 @@
 (ns time-report.print
-  (:require [malli.core :as m]
-            [malli.generator :as mg]))
+  (:require [malli.generator :as mg]))
 
 (defn- max-width
   "Find max width of a seq of strings."

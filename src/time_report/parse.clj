@@ -1,7 +1,6 @@
 (ns time-report.parse
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [malli.core :as m]
             [malli.generator :as mg]
             [time-report.core :as core]))
 

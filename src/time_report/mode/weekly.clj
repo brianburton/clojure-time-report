@@ -1,4 +1,5 @@
 (ns time-report.mode.weekly
+  #_{:clj-kondo/ignore [:refer-all]}
   (:require [time-report.core :refer :all]
             [time-report.mode.random :as rnd]
             [time-report.parse :as parse]

@@ -1,4 +1,5 @@
 (ns time-report.core-test
+  #_{:clj-kondo/ignore [:refer-all]}
   (:require [clojure.test :refer :all]
             [time-report.core :refer :all]))
 (import (java.time LocalDate LocalTime))
