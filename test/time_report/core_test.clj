@@ -143,7 +143,6 @@
       12 31))
   (testing "lear year" (is (= 29 (days-in-month 2024 2)))))
 
-
 (deftest closed-range-test
   (is (= [3 4 5] (vec (closed-range 3 5)))))
 
@@ -201,4 +200,16 @@
   (let [provided {:year 2024 :month 3 :day 23 :day-number 5 :times [1 2 3]}
         before [provided]
         after (fill-missing-days before)]
-    (is (some? (.indexOf after provided)))))
+    (is (= (.indexOf after provided) 7))
+    (is (= (first after) {:year 2024 :month 3 :day 16 :day-number 5 :week-number 1471 :times []}))
+    (is (= (map :year after) (repeat 16 2024)))
+    (is (= (map :month after) (repeat 16 3)))
+    (is (= (map :day after) (closed-range 16 31)))
+    (is (= (map :day-number after) (take 16 (cycle [5 6 0 1 2 3 4]))))))
+
+(deftest normalize-minutes-vec-test
+  (is (= [60 75 75 75 90] (normalize-minutes-vec [74 75 76 89 90]))))
+
+(deftest add-vecs-test
+  (is (= [] (add-vecs [] [])))
+  (is (= [3] (add-vecs [1] [2]))))
