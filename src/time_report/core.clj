@@ -94,6 +94,10 @@
     [1 15]
     [16 (days-in-month year month)]))
 
+(defn closed-range
+  "Like range but to is inclusive."
+  [from to] (range from (inc to)))
+
 (defn cycle-days
   "Return a set containing all of the day numbers (1-15 or 16-N) in the given cycle."
   [year month day]
@@ -119,9 +123,8 @@
 (defn fill-missing-days
   "Given a sequence of date maps from a single cycle return a sorted vector of date maps including zero-elapsed date-maps for any days missing from the input sequence."
   [dms]
-  (let [present-days (set (map :day dms))
-        first-dm (first dms)
-        {year :year month :month day :day} first-dm
+  (let [{:keys [year month day]} (first dms)
+        present-days (set (map :day dms))
         all-days (cycle-days year month day)
         missing-days (set/difference all-days present-days)
         missing-dms (map (fn [d]
@@ -138,7 +141,7 @@
   (apply = (map #(select-values % [:year :month :day]) [a b])))
 
 (defn normalize-minutes
-  "Truncatse an elapsed time to an even multiple of 15 minutes."
+  "Truncates an elapsed time to an even multiple of 15 minutes."
   [minutes]
   (- minutes (mod minutes 15)))
 

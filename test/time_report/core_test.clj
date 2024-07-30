@@ -143,6 +143,10 @@
       12 31))
   (testing "lear year" (is (= 29 (days-in-month 2024 2)))))
 
+
+(deftest closed-range-test
+  (is (= [3 4 5] (vec (closed-range 3 5)))))
+
 (deftest cycle-days-range-test
   (let [start [1 15]
         end-28 [16 28]
@@ -192,3 +196,9 @@
       (doseq [d1 (range 1 16)] (is (not (in-cycle? {:year y :month (- m 1) :day d1})))))
     (testing "false for days after cycle"
       (doseq [d1 (range 17 32)] (is (not (in-cycle? {:year y :month m :day d1})))))))
+
+(deftest fill-missing-days-test
+  (let [provided {:year 2024 :month 3 :day 23 :day-number 5 :times [1 2 3]}
+        before [provided]
+        after (fill-missing-days before)]
+    (is (some? (.indexOf after provided)))))
